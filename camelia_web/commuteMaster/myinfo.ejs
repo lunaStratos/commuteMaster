@@ -1,0 +1,766 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>교통마스터 - 정보 등록</title>
+    <!-- Bootstrap core CSS-->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom fonts for this template-->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+
+    <!-- Custom styles for this template-->
+    <link href="css/sb-admin.css" rel="stylesheet">
+    <!-- Bootstrap core JavaScript-->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <!-- form submit-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-serialize-object/2.5.0/jquery.serialize-object.min.js"></script>
+
+</head>
+
+<body class="bg-dark">
+
+    <div class="container">
+        <div class="card card-register mx-auto mt-5">
+            <div class="card-header">계정의 교통정보 정보</div>
+            <div class="card-body">
+                <h3>설정 방법은 다음 <a href ="./accountLink" target="_blank">메뉴얼을 읽어주세요</a></h3>
+                <form action="./myinfo" method="post" id="myinfoForm">
+                    <h3>버스정류장 설정</h3>
+                    <p>버스정류장 아이디는 지도에서 찾아서 입력해주세요. </p>
+                    <p> - 버스정류장 아이디 번호 <a href="./busid.html" target="_blank">얻는 방법</a></p>
+                    <p> - <a href="https://map.kakao.com" target="_blank">카카오지도</a></p>
+                    <p> - <a href="https://map.naver.com/" target="_blank">네이버지도</a></p>
+                    <!--                            버스정보-->
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <!-- for문으로 구현-->
+                                <span id="buslength" busnum="<%=busList.length%>"></span>
+                                <span id="buscount" busnum="<%=busList.length%>"></span>
+                                <%for (var i = 0; i < busList.length ; i++){ %>
+                                <div class="form-label-group" id ="busstation<%=i%>">
+                                    <input type="text" id="bus<%=i%>" class="form-control" name="busList[<%=i%>][arsId]" placeholder="bus<%=i%>" autofocus="autofocus" value="<%=busList[i].arsId%>" busnum="<%=i%>">
+                                    <label for="bus<%=i%>">버스정거장 코드(숫자만 입력)</label>
+                                  <button type="button" class="deleteBusNum" busnum="<%=i%>" style="HEIGHT: 15pt;font-size:8pt">삭제하기</button>
+                                </div>
+                                <% } %>
+                                <span id="addBusSpan"></span>
+                                    <p><button type="button" id="addBus" style="HEIGHT: 15pt;font-size:8pt">버스 추가하기</button>
+
+                                    <p>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+                                <!-- for문으로 구현-->
+                                <%for (var i = 0; i < busList.length ; i++){ %>
+                                <div class="form-label-group" id ="busstation<%=i%>">
+                                    <input type="text" id="busnum<%=i%>" class="form-control" name="busList[<%=i%>][favorite]" placeholder="bus<%=i%>temp" autofocus="autofocus" value="<%=busList[i].favorite%>">
+                                    <label for="busnum<%=i%>">(419버스 => 419 / 여러개입력=> 419, 227)</label>
+                                    <b>종합정보 사용여부: </b>
+                                    <!-- <select name="busList[<%=i%>][sido]" id="buslocation<%=i%>">
+                  <option value="<%=busList[i].sido%>">
+                   <%=busList[i].sido%>
+                  </option>
+                  <option value="none">선택안함</option>
+                  <option value="서울">서울</option>
+                  <option value="대전">대전</option>
+                  <option value="대구">대구</option>
+                  <option value="부산">부산</option>
+                  <option value="광주">광주</option>
+                  <option value="울산">울산</option>
+                  <option value="광주">광주</option>
+                </select> -->
+
+                <!-- 간단 조회시 사용여부 -->
+                <input type='radio' name='busList[<%=i%>][use]' value='Y' <% if(busList[i].use == 'Y'){ %> checked="checked"<% }%> /> Y
+                <input type='radio' name='busList[<%=i%>][use]' value='N' <% if(busList[i].use == 'N'){ %> checked="checked"<% }%> /> N
+                <!-- 간단 조회시 사용여부 -->
+                                </div>
+                                <% } %>
+                                <span id="addBusSpan2"></span>
+
+                                <p>
+
+                            </div>
+
+                        </div>
+                    </div>
+                    <!--                            지하철 정보(시간표)-->
+                    <h3>지하철 설정</h3>
+                    <p>지하철 역은 역을 뺀 나머지 이름을 입력하시면 됩니다.</p>
+                    <p>상행선 하행선 혹은 외선순환 내선순환을 모르신다면 <a href="./updown" target="_blank">다음 링크</a>를 참조해 주세요.</p>
+                    <p>예: 남성역 => 남성</p>
+
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <!-- for문으로 구현-->
+                                <span id="subwaylength" subwaynum="<%=subwayList.length%>"></span>
+                                <span id="subwaycount" subwaynum="<%=subwayList.length%>"></span>
+                                <%for (var i = 0; i < subwayList.length ; i++){ %>
+                                <!-- <%=i%>-->
+
+                                <div class="form-label-group" id="subwaystation<%=i%>">
+                                    <input type="text" id="subway<%=i%>" class="form-control" name="subwayList[<%=i%>][stationName]" placeholder="bus<%=i%>" autofocus="autofocus" value="<%=subwayList[i].stationName%>">
+                                    <label for="subway<%=i%>">지하철역 <%=i+1%> (예: 서울역 => 서울)</label>
+                                    상행선<input type="radio" name="subwayList[<%=i%>][updown]" value="1" <% if(subwayList[i].updown == '1'){ %> checked="checked"<% }%> >
+                                    하행선<input type="radio" name="subwayList[<%=i%>][updown]" value="2" <% if(subwayList[i].updown == '2'){ %> checked="checked"<% }%> >
+                                </div>
+
+                                <% } %>
+                                    <span id="addSubwaySpan"></span>
+                                    <p><button type="button" id="addSubway" style="HEIGHT: 15pt;font-size:8pt">역 추가하기</button>
+
+                                <p>
+                            </div>
+
+
+                            <div class="col-md-6">
+                                 <!-- for문으로 구현-->
+                                 <%for (var i = 0; i < subwayList.length ; i++){ %>
+                                <div class="form-label-group" id="subwaystation<%=i%>">
+                                    <input type="text" id="subway<%=i%>temp" class="form-control" name="name" placeholder="subway<%=i%>temp" autofocus="autofocus">
+                                    <label>
+                    <select name="subwayList[<%=i%>][line]" id="subwaylocation<%=i%>">
+                  <option value="<%=subwayList[i].linecode%>">
+                    <%=subwayList[i].line%>
+                  </option>
+                  <option value="none">호선설정 : 선택안함</option>
+                  <option value="s01">서울1호선</option>
+                  <option value="s02">서울2호선</option>
+                  <option value="s03">서울3호선</option>
+                  <option value="s04">서울4호선</option>
+                  <option value="s05">서울5호선</option>
+                  <option value="s06">서울6호선</option>
+                  <option value="s07">서울7호선</option>
+                <option value="s09">서울9호선</option>
+                <option value="i01">인천1호선</option>
+                <option value="i02">인천2호선</option>
+                <option value="s0a">AREX공항철도</option>
+                <option value="s0b">분당선</option>
+                <option value="s0s">신분당선</option>
+                <option value="s0u">의정부경전철</option>
+                <option value="s0e">용인에버라인</option>
+                <option value="s0g">경춘선</option>
+                <option value="s0k">경의중앙선</option>
+                <option value="s0kk">경강선</option>
+                <option value="s0ui">우이신설</option>
+                <option value="s0su">수인선</option>
+                <option value="b01">부산1호선</option>
+                <option value="b02">부산2호선</option>
+                <option value="b03">부산3호선</option>
+                <option value="b04">부산3호선</option>
+
+                </select>
+
+                </label>
+                <button type="button" class="deleteSubwayNum" subwaynum="<%=i%>" style="HEIGHT: 15pt;font-size:8pt">삭제하기</button>
+                종합정보 사용여부:
+                <!-- 간단 조회시 사용여부 -->
+                <input type='radio' name='subwayList[<%=i%>][use]' value='Y' <% if(subwayList[i].use == 'Y'){ %> checked="checked"<% }%> /> Y
+                <input type='radio' name='subwayList[<%=i%>][use]' value='N' <% if(subwayList[i].use == 'N'){ %> checked="checked"<% }%> /> N
+                <!-- 간단 조회시 사용여부 -->
+                                </div>
+                                 <% } %>
+                                <span id="addSubwaySpan2"></span>
+
+                                <p>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                    <!-- 지하철 시간표 조회 시간 설정-->
+                    <h3>지하철시간표 조회 시간</h3>
+                    <p>사용시의 시각부터 최대 조회할 분(Minute)을 설정합니다.</p>
+                    <p>5분에서 40분까지 5분 단위로 설정 가능합니다.</p>
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                    <input type="text" id="timesetting" class="form-control" name="name" placeholder="timesetting" autofocus="autofocus">
+                                    <label>
+                                    <b>분 : </b><select name="timesetting" id="timesetting">
+                  <option value="<%=timesetting%>">
+                    <%=timesetting%>
+                  </option>
+                  <option value="5">5분</option>
+                  <option value="10">10분</option>
+                  <option value="15">15분</option>
+                  <option value="20">20분</option>
+                  <option value="25">25분</option>
+                  <option value="30">30분</option>
+                  <option value="35">35분</option>
+                <option value="40">40분</option>
+
+                </select>
+
+                </label>
+
+                                </div>
+
+                                <p>
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    <!--                            교통정보-->
+                    <h3>교통정보 설정</h3>
+                    <p>주요 광역시의 구 를 선택해 주세요.</p>
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                    <input type="text" id="traffictemp1" class="form-control" name="name" placeholder="traffic1" autofocus="autofocus">
+                                    <label>
+                <b>집 : </b><select name="traffic1" id="traffic1">
+                  <option value="<%=traffic1.cityname%>">
+                    <%=traffic1.cityname%>
+                  </option>
+                  <option value="서울 종로구">====서울====</option>
+                  <option value="서울 종로구">서울 종로구</option>
+                  <option value="서울 중구">서울 중구</option>
+                  <option value="서울 성동구">서울 성동구</option>
+                  <option value="서울 용산구">서울 용산구</option>
+                  <option value="서울 광진구">서울 광진구</option>
+                  <option value="서울 동대문구">서울 동대문구</option>
+                  <option value="서울 중랑구">서울 중랑구</option>
+                  <option value="서울 성북구">서울 성북구</option>
+                  <option value="서울 강북구">서울 강북구</option>
+                  <option value="서울 도봉구">서울 도봉구</option>
+                  <option value="서울 노원구">서울 노원구</option>
+                  <option value="서울 은평구">서울 은평구</option>
+                  <option value="서울 서대문구">서울 서대문구</option>
+                  <option value="서울 양천구">서울 양천구</option>
+                  <option value="서울 마포구">서울 마포구</option>
+                  <option value="서울 구로구">서울 구로구</option>
+                  <option value="서울 금천구">서울 금천구</option>
+                  <option value="서울 영등포구">서울 영등포구</option>
+                  <option value="서울 동작구">서울 동작구</option>
+                  <option value="서울 관악구">서울 관악구</option>
+                  <option value="서울 서초구">서울 서초구</option>
+                  <option value="서울 강남구">서울 강남구</option>
+                  <option value="서울 송파구">서울 송파구</option>
+                  <option value="서울 강동구">서울 강동구</option>
+                  <option value="부산 중구">====부산====</option>
+                  <option value="부산 중구">부산 중구</option>
+                  <option value="부산 서구">부산 서구</option>
+                  <option value="부산 동구">부산 동구</option>
+                  <option value="부산 영도구">부산 영도구</option>
+                  <option value="부산 부산지구">부산 부산지구</option>
+                  <option value="부산 동래구">부산 동래구</option>
+                  <option value="부산 남구">부산 남구</option>
+                  <option value="부산 북구">부산 북구</option>
+                  <option value="부산 해운대구">부산 해운대구</option>
+                  <option value="부산 사하구">부산 사하구</option>
+                  <option value="부산 금정구">부산 금정구</option>
+                  <option value="부산 강서구">부산 강서구</option>
+                  <option value="부산 연제구">부산 연제구</option>
+                  <option value="부산 수영구">부산 수영구</option>
+                  <option value="부산 사상구">부산 사상구</option>
+                  <option value="부산 기장군">부산 기장군</option>
+                  <option value="인천 중구">=====인천=====</option>
+                  <option value="인천 중구">인천 중구</option>
+                  <option value="인천 동구">인천 동구</option>
+                  <option value="인천 미추홀구">인천 미추홀구</option>
+                  <option value="인천 연수구">인천 연수구</option>
+                  <option value="인천 남동구">인천 남동구</option>
+                  <option value="인천 부평구">인천 부평구</option>
+                  <option value="인천 계양구">인천 계양구</option>
+                  <option value="인천 서구">인천 서구</option>
+                  <option value="인천 강화군">인천 강화군</option>
+                  <option value="인천 옹진군">인천 옹진군</option>
+                  <option value="대구 중구">=====대구=====</option>
+                  <option value="대구 중구">대구 중구</option>
+                  <option value="대구 동구">대전 동구</option>
+                  <option value="대구 서구">대구 서구</option>
+                  <option value="대구 남구">대구 남구</option>
+                  <option value="대구 북구">대구 북구</option>
+                  <option value="대구 수성구">대구 수성구</option>
+                  <option value="대구 달서구">대구 달서구</option>
+                  <option value="대구 달성군">대구 달성군</option>
+                  <option value="광주 동구">=====광주======</option>
+                  <option value="광주 동구">광주 동구</option>
+                  <option value="광주 서구">광주 서구</option>
+                  <option value="광주 남구">광주 남구</option>
+                  <option value="광주 북구">광주 북구</option>
+                  <option value="광주 광산구">광주 광산구</option>
+                  <option value="대전 동구">=====대전=====</option>
+                  <option value="대전 동구">대전 동구</option>
+                  <option value="대전 중구">대전 중구</option>
+                  <option value="대전 서구">대전 서구</option>
+                  <option value="대전 유성구">대전 유성구</option>
+                  <option value="대전 대덕구">대전 대덕구</option>
+                  <option value="울산 중구">=====울산=====</option>
+                  <option value="울산 중구">울산 중구</option>
+                  <option value="울산 남구">울산 남구</option>
+                  <option value="울산 동구">울산 동구</option>
+                  <option value="울산 북구">울산 북구</option>
+                  <option value="울산 울주군">울산 울주군</option>
+
+                </select>
+
+                </label>
+
+
+
+                                </div>
+
+                                <div class="form-label-group">
+                                    <input type="text" id="traffictemp2" class="form-control" name="name" placeholder="traffic2" autofocus="autofocus">
+                                    <label>
+                <b>회사 : </b><select name="traffic2" id="traffic2">
+                  <option value="<%=traffic2.cityname%>">
+                    <%=traffic2.cityname%>
+                  </option>
+                  <option value="서울 종로구">====서울====</option>
+                  <option value="서울 종로구">서울 종로구</option>
+                  <option value="서울 중구">서울 중구</option>
+                  <option value="서울 성동구">서울 성동구</option>
+                  <option value="서울 용산구">서울 용산구</option>
+                  <option value="서울 광진구">서울 광진구</option>
+                  <option value="서울 동대문구">서울 동대문구</option>
+                  <option value="서울 중랑구">서울 중랑구</option>
+                  <option value="서울 성북구">서울 성북구</option>
+                  <option value="서울 강북구">서울 강북구</option>
+                  <option value="서울 도봉구">서울 도봉구</option>
+                  <option value="서울 노원구">서울 노원구</option>
+                  <option value="서울 은평구">서울 은평구</option>
+                  <option value="서울 서대문구">서울 서대문구</option>
+                  <option value="서울 양천구">서울 양천구</option>
+                  <option value="서울 마포구">서울 마포구</option>
+                  <option value="서울 구로구">서울 구로구</option>
+                  <option value="서울 금천구">서울 금천구</option>
+                  <option value="서울 영등포구">서울 영등포구</option>
+                  <option value="서울 동작구">서울 동작구</option>
+                  <option value="서울 관악구">서울 관악구</option>
+                  <option value="서울 서초구">서울 서초구</option>
+                  <option value="서울 강남구">서울 강남구</option>
+                  <option value="서울 송파구">서울 송파구</option>
+                  <option value="서울 강동구">서울 강동구</option>
+                  <option value="부산 중구">====부산====</option>
+                  <option value="부산 중구">부산 중구</option>
+                  <option value="부산 ">부산 중구</option>
+                  <option value="부산 ">부산 서구</option>
+                  <option value="부산 ">부산 동구</option>
+                  <option value="부산 ">부산 영도구</option>
+                  <option value="부산 ">부산 부산지구</option>
+                  <option value="부산 ">부산 동래구</option>
+                  <option value="부산 ">부산 남구</option>
+                  <option value="부산 ">부산 북구</option>
+                  <option value="부산 ">부산 해운대구</option>
+                  <option value="부산 ">부산 사하구</option>
+                  <option value="부산 ">부산 금정구</option>
+                  <option value="부산 ">부산 강서구</option>
+                  <option value="부산 ">부산 연제구</option>
+                  <option value="부산 ">부산 수영구</option>
+                  <option value="부산 ">부산 사상구</option>
+                  <option value="부산 ">부산 기장군</option>
+                  <option value="인천 중구">=====인천=====</option>
+                  <option value="인천 중구">인천 중구</option>
+                  <option value="인천 동구">인천 동구</option>
+                  <option value="인천 미추홀구">인천 미추홀구</option>
+                  <option value="인천 연수구">인천 연수구</option>
+                  <option value="인천 남동구">인천 남동구</option>
+                  <option value="인천 부평구">인천 부평구</option>
+                  <option value="인천 계양구">인천 계양구</option>
+                  <option value="인천 서구">인천 서구</option>
+                  <option value="인천 강화군">인천 강화군</option>
+                  <option value="인천 옹진군">인천 옹진군</option>
+                  <option value="대구 중구">=====대구=====</option>
+                  <option value="대구 중구">대구 중구</option>
+                  <option value="대구 동구">대전 동구</option>
+                  <option value="대구 서구">대구 서구</option>
+                  <option value="대구 남구">대구 남구</option>
+                  <option value="대구 북구">대구 북구</option>
+                  <option value="대구 수성구">대구 수성구</option>
+                  <option value="대구 달서구">대구 달서구</option>
+                  <option value="대구 달성군">대구 달성군</option>
+                  <option value="광주 동구">=====광주======</option>
+                  <option value="광주 동구">광주 동구</option>
+                  <option value="광주 서구">광주 서구</option>
+                  <option value="광주 남구">광주 남구</option>
+                  <option value="광주 북구">광주 북구</option>
+                  <option value="광주 광산구">광주 광산구</option>
+                  <option value="대전 동구">=====대전=====</option>
+                  <option value="대전 동구">대전 동구</option>
+                  <option value="대전 중구">대전 중구</option>
+                  <option value="대전 서구">대전 서구</option>
+                  <option value="대전 유성구">대전 유성구</option>
+                  <option value="대전 대덕구">대전 대덕구</option>
+                  <option value="울산 중구">=====울산=====</option>
+                  <option value="울산 중구">울산 중구</option>
+                  <option value="울산 남구">울산 남구</option>
+                  <option value="울산 동구">울산 동구</option>
+                  <option value="울산 북구">울산 북구</option>
+                  <option value="울산 울주군">울산 울주군</option>
+                </select>
+
+                </label>
+
+                                </div>
+
+
+                                <div class="form-label-group">
+                                    <input type="text" id="traffictemp3" class="form-control" name="name" placeholder="traffic1" autofocus="autofocus">
+                                    <label>
+                <b>기타 : </b><select name="traffic3" id="traffic3">
+                  <option value="<%=traffic3.cityname%>">
+                    <%=traffic3.cityname%>
+                  </option>
+                  <option value="서울 종로구">====서울====</option>
+                  <option value="서울 종로구">서울 종로구</option>
+                  <option value="서울 중구">서울 중구</option>
+                  <option value="서울 성동구">서울 성동구</option>
+                  <option value="서울 용산구">서울 용산구</option>
+                  <option value="서울 광진구">서울 광진구</option>
+                  <option value="서울 동대문구">서울 동대문구</option>
+                  <option value="서울 중랑구">서울 중랑구</option>
+                  <option value="서울 성북구">서울 성북구</option>
+                  <option value="서울 강북구">서울 강북구</option>
+                  <option value="서울 도봉구">서울 도봉구</option>
+                  <option value="서울 노원구">서울 노원구</option>
+                  <option value="서울 은평구">서울 은평구</option>
+                  <option value="서울 서대문구">서울 서대문구</option>
+                  <option value="서울 양천구">서울 양천구</option>
+                  <option value="서울 마포구">서울 마포구</option>
+                  <option value="서울 구로구">서울 구로구</option>
+                  <option value="서울 금천구">서울 금천구</option>
+                  <option value="서울 영등포구">서울 영등포구</option>
+                  <option value="서울 동작구">서울 동작구</option>
+                  <option value="서울 관악구">서울 관악구</option>
+                  <option value="서울 서초구">서울 서초구</option>
+                  <option value="서울 강남구">서울 강남구</option>
+                  <option value="서울 송파구">서울 송파구</option>
+                  <option value="서울 강동구">서울 강동구</option>
+                  <option value="부산 중구">====부산====</option>
+                  <option value="부산 중구">부산 중구</option>
+                  <option value="부산 서구">부산 서구</option>
+                  <option value="부산 동구">부산 동구</option>
+                  <option value="부산 영도구">부산 영도구</option>
+                  <option value="부산 부산지구">부산 부산지구</option>
+                  <option value="부산 동래구">부산 동래구</option>
+                  <option value="부산 남구">부산 남구</option>
+                  <option value="부산 북구">부산 북구</option>
+                  <option value="부산 해운대구">부산 해운대구</option>
+                  <option value="부산 사하구">부산 사하구</option>
+                  <option value="부산 금정구">부산 금정구</option>
+                  <option value="부산 강서구">부산 강서구</option>
+                  <option value="부산 연제구">부산 연제구</option>
+                  <option value="부산 수영구">부산 수영구</option>
+                  <option value="부산 사상구">부산 사상구</option>
+                  <option value="부산 기장군">부산 기장군</option>
+                  <option value="인천 중구">=====인천=====</option>
+                  <option value="인천 중구">인천 중구</option>
+                  <option value="인천 동구">인천 동구</option>
+                  <option value="인천 미추홀구">인천 미추홀구</option>
+                  <option value="인천 연수구">인천 연수구</option>
+                  <option value="인천 남동구">인천 남동구</option>
+                  <option value="인천 부평구">인천 부평구</option>
+                  <option value="인천 계양구">인천 계양구</option>
+                  <option value="인천 서구">인천 서구</option>
+                  <option value="인천 강화군">인천 강화군</option>
+                  <option value="인천 옹진군">인천 옹진군</option>
+                  <option value="대구 중구">=====대구=====</option>
+                  <option value="대구 중구">대구 중구</option>
+                  <option value="대구 동구">대전 동구</option>
+                  <option value="대구 서구">대구 서구</option>
+                  <option value="대구 남구">대구 남구</option>
+                  <option value="대구 북구">대구 북구</option>
+                  <option value="대구 수성구">대구 수성구</option>
+                  <option value="대구 달서구">대구 달서구</option>
+                  <option value="대구 달성군">대구 달성군</option>
+                  <option value="광주 동구">=====광주======</option>
+                  <option value="광주 동구">광주 동구</option>
+                  <option value="광주 서구">광주 서구</option>
+                  <option value="광주 남구">광주 남구</option>
+                  <option value="광주 북구">광주 북구</option>
+                  <option value="광주 광산구">광주 광산구</option>
+                  <option value="대전 동구">=====대전=====</option>
+                  <option value="대전 동구">대전 동구</option>
+                  <option value="대전 중구">대전 중구</option>
+                  <option value="대전 서구">대전 서구</option>
+                  <option value="대전 유성구">대전 유성구</option>
+                  <option value="대전 대덕구">대전 대덕구</option>
+                  <option value="울산 중구">=====울산=====</option>
+                  <option value="울산 중구">울산 중구</option>
+                  <option value="울산 남구">울산 남구</option>
+                  <option value="울산 동구">울산 동구</option>
+                  <option value="울산 북구">울산 북구</option>
+                  <option value="울산 울주군">울산 울주군</option>
+                </select>
+
+                </label>
+
+                                </div>
+
+                                <p>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                    <input type="text" id="timesetting" class="form-control" name="name" placeholder="timesetting" autofocus="autofocus">
+                                    <label>
+                                      종합정보 사용여부:
+                                      <!-- 간단 조회시 사용여부 -->
+                                      <input type='radio' name='trafficuse1' value='Y' <% if(traffic1.use == 'Y'){ %> checked="checked"<% }%> /> Y
+                                      <input type='radio' name='trafficuse1' value='N' <% if(traffic1.use == 'N'){ %> checked="checked"<% }%> /> N
+                                      <!-- 간단 조회시 사용여부 -->
+                                    </label>
+
+                                </div>
+
+                                <div class="form-label-group">
+                                    <input type="text" id="timesetting" class="form-control" name="name" placeholder="timesetting" autofocus="autofocus">
+                                    <label>
+                                      종합정보 사용여부:
+                                      <!-- 간단 조회시 사용여부 -->
+                                      <input type='radio' name='trafficuse2' value='Y' <% if(traffic2.use == 'Y'){ %> checked="checked"<% }%> /> Y
+                                      <input type='radio' name='trafficuse2' value='N' <% if(traffic2.use == 'N'){ %> checked="checked"<% }%> /> N
+                                      <!-- 간단 조회시 사용여부 -->
+                                    </label>
+
+                                </div>
+
+                                <div class="form-label-group">
+                                    <input type="text" id="timesetting" class="form-control" name="name" placeholder="timesetting" autofocus="autofocus">
+                                    <label>
+                                      종합정보 사용여부:
+                                      <!-- 간단 조회시 사용여부 -->
+                                      <input type='radio' name='trafficuse3' value='Y' <% if(traffic3.use == 'Y'){ %> checked="checked"<% }%> /> Y
+                                      <input type='radio' name='trafficuse3' value='N' <% if(traffic3.use == 'N'){ %> checked="checked"<% }%> /> N
+                                      <!-- 간단 조회시 사용여부 -->
+                                    </label>
+
+                                </div>
+                                <p>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                    <!--지도-->
+                    <h3>주유소 위치 설정</h3>
+                    <p>설정 위치에서 반경 900m로 조회합니다. 지도위에서 클릭하시면 경도와 위도를 자동으로 읽습니다.</p>
+                    <p>검색은 지도 아래의 검색창을 이용해 주세요.</p>
+                    <div id="map" style="width:100%;height:350px;"></div>
+                    <!--지도검색기능-->
+                    <p></p>
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                    <input type="text" id="mylocation" class="form-control" name="mylocation" placeholder="">
+                                    <label for="mylocation">위치를 입력하면 검색이 가능!</label>
+
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+
+                                    <button type="button" id="mysearch" class="btn btn-secondary">찾기</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!--지도좌표-->
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                    <input type="text" id="map01lat" class="form-control"name="map01lat" placeholder="map" value="<%=lat%>" readonly>
+
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                    <input type="text" id="map01lng" class="form-control" name="map01lng" placeholder="aas" value="<%=lng%>" readonly>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--주유소 정보 간편읽기에 사용여부 -->
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+
+                                  <!-- <input type='radio' name='todaynow' value='Y' <% if(todaynow == 'Y'){ %> checked="checked"<% }%> /> Y
+                                  <input type='radio' name='todaynow' value='N' <% if(todaynow == 'N'){ %> checked="checked"<% }%> /> N -->
+
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                  찾을 석유제품:
+                                  <select name="product" id="product">
+                                                    <option value="<%=product%>">
+                                                      <%=product%>
+                                                    </option>
+                                                    <option value="휘발유">휘발유</option>
+                                                    <option value="경유">경유</option>
+                                                    <option value="고급휘발유">고급휘발유</option>
+                                                    <option value="실내등유">실내등유</option>
+                                                    <option value="자동차부탄">자동차부탄</option>
+
+                                                  </select>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1be2a6fd653dbc9fb25f48ce958ed8eb&libraries=services"></script>
+                    <script>
+                        //검색창달기
+                        var locationStr = '';
+
+                        var mapContainer = document.getElementById('map'), // 지도를 표시할 div
+                            mapOption = {
+                                center: new daum.maps.LatLng(37.4673274, 127.073044), // 지도의 중심좌표
+                                level: 3 // 지도의 확대 레벨
+                            };
+
+                        var map = new daum.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
+
+                        //내 지역 검색
+                        document.getElementById('mysearch').addEventListener('click', function() {
+                            locationStr = document.getElementById('mylocation').value;
+                            kakaoMap(locationStr);
+
+                        });
+                        kakaoMap('서울역');
+
+                        function kakaoMap(str) {
+
+
+
+                            // 장소 검색 객체를 생성합니다
+                            var ps = new daum.maps.services.Places();
+
+                            // 키워드로 장소를 검색합니다
+                            ps.keywordSearch(str, placesSearchCB);
+
+                            // 키워드 검색 완료 시 호출되는 콜백함수 입니다
+                            function placesSearchCB(data, status, pagination) {
+                                if (status === daum.maps.services.Status.OK) {
+
+                                    // 검색된 장소 위치를 기준으로 지도 범위를 재설정하기위해
+                                    // LatLngBounds 객체에 좌표를 추가합니다
+                                    var bounds = new daum.maps.LatLngBounds();
+
+                                    for (var i = 0; i < data.length; i++) {
+
+                                        bounds.extend(new daum.maps.LatLng(data[i].y, data[i].x));
+                                    }
+
+                                    // 검색된 장소 위치를 기준으로 지도 범위를 재설정합니다
+                                    map.setBounds(bounds);
+                                }
+                            }
+
+
+
+                            // 지도를 클릭한 위치에 표출할 마커입니다
+                            var marker = new daum.maps.Marker({
+                                // 지도 중심좌표에 마커를 생성합니다
+                                position: map.getCenter()
+                            });
+                            // 지도에 마커를 표시합니다
+                            marker.setMap(map);
+
+
+                            // 지도에 클릭 이벤트를 등록합니다
+                            // 지도를 클릭하면 마지막 파라미터로 넘어온 함수를 호출합니다
+                            daum.maps.event.addListener(map, 'click', function(mouseEvent) {
+
+                                // 클릭한 위도, 경도 정보를 가져옵니다
+                                var latlng = mouseEvent.latLng;
+
+                                // 마커 위치를 클릭한 위치로 옮깁니다
+                                marker.setPosition(latlng);
+
+                                //경위도 input에 자동입력
+                                var latId = document.getElementById('map01lat');
+                                var lngId = document.getElementById('map01lng');
+                                latId.value = latlng.getLat();
+                                lngId.value = latlng.getLng();
+
+                            });
+
+                        }
+                    </script>
+
+
+
+                    <a class="btn btn-primary btn-block" id="submitForm">입력하기</a>
+                </form>
+                <!--                form-->
+
+                <div class="text-center">
+                    <a class="d-block small mt-3" href="/dashboard">뒤로가기</a>
+
+                </div>
+            </div>
+        </div>
+    </div>
+  <script src="javascript/myinfo.js"></script>
+
+
+
+    <div class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">실패</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+                </div>
+                <div class="modal-body">
+                    <p id="modalText">입력하시려고 하셨습니다.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+</body>
+
+</html>

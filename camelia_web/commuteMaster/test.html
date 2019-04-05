@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>전송 폼</title>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-serialize-object/2.5.0/jquery.serialize-object.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $("#button").click(function() {
+
+        var formData = $("#form").serializeObject()
+        //검증
+        console.log(JSON.stringify(formData));
+        $("#form").submit();
+      })
+
+    });
+  </script>
+</head>
+
+<body>
+  <form id="form" action="./test" method="post">
+    <input type="text" name="bus1" value="1" />
+    <input type="text" name="buslist[0][arsId]" />
+    <input type="text" name="buslist[0][favorite]" />
+    <input type="text" name="buslist[0][sido]" />
+    <input type="text" name="buslist[1][arsId]" />
+    <input type="text" name="buslist[1][favorite]" />
+    <input type="text" name="buslist[1][sido]" />
+
+  </form>
+  <button id="button">버튼</button>
+
+</body>
+
+</html>

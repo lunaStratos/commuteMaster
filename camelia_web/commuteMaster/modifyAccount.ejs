@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>교통마스터 - 계정수정</title>
+  <!-- Bootstrap core CSS-->
+  <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom fonts for this template-->
+  <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+
+  <!-- Custom styles for this template-->
+  <link href="css/sb-admin.css" rel="stylesheet">
+  <!-- Bootstrap core JavaScript-->
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Core plugin JavaScript-->
+  <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+  <script>
+
+    function chkPwd(str){
+        var reg_pwd = /^.*(?=.{6,20})(?=.*[0-9])(?=.*[a-zA-Z]).*$/;
+        if(!reg_pwd.test(str)){
+          //틀리면
+          return true;
+        }
+        //암호가 맞으면
+        return false;
+      }
+
+  function verifyEmail (email) {
+    // 이메일 검증 스크립트 작성
+    var regExp = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;
+    // 검증에 사용할 정규식 변수 regExp에 저장
+    if (email.match(regExp) != null) {
+      //맞으면
+      return false;
+    }
+    else {
+      //이메일이 틀리면
+      return true
+    }
+  }//function
+
+  function checkLocation(text) {
+    let flag = true;
+    const arr = ['서울', '대전', '대구', '부산', '광주', '울산','세종', '경기', '경남', '경북', '전남', '전북', '제주', '강원', '충북', '충남']
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] == text) {
+        flag = false;
+      }
+    }
+
+    return flag;
+  }
+
+      //실행 부분
+      function onclick(){
+        var flag = true;
+
+        var form = document.getElementById('modifyForm');
+        var location = document.getElementById('location').value;
+        var name = document.getElementById('firstName').value;
+        var year = document.getElementById('year').value;
+
+        var password = document.getElementById('inputPassword').value;
+        var confirmPassword = document.getElementById('confirmPassword').value;
+
+        var pattern = /^[가-힣]{2,4}|[a-zA-Z]{2,10}\s[a-zA-Z]{2,10}$/;
+        if(!pattern.test(name)){
+          $('#modalText').text('이름을 제대로 입력해 주세요.');
+            $('.modal').modal('show');
+          flag = false;
+            return;
+        }
+
+        if( 1900 > Number(year) ||  Number(year) > (new Date().getFullYear())){
+          $('#modalText').text('년도를 임의로 수정하지 말아주세요.');
+            $('.modal').modal('show');
+          flag = false;
+          return;
+        }
+
+        if(!Number(year)){
+          $('#modalText').text('년도를 입력해 주세요.');
+            $('.modal').modal('show');
+          flag = false;
+          return;
+        }
+
+
+        if(password !== confirmPassword){
+          $('#modalText').text('암호가 같지 않습니다. 다시한번 체크해주세요.');
+            $('.modal').modal('show');
+          flag = false;
+            return;
+        }
+
+        if(chkPwd(password)){
+            flag = false;
+            $('#modalText').text('암호는 6~20자리 입니다.');
+              $('.modal').modal('show');
+              return;
+        }
+
+
+        if(checkLocation(location)){
+          flag = false;
+          $('#modalText').text('지역을 선택해 주세요.');
+            $('.modal').modal('show');
+            return;
+        }
+
+        //마지막 flag체크후 보내기
+        if(flag){
+          form.submit();
+        }else{
+
+        }
+
+      }
+
+    </script>
+</head>
+
+<body class="bg-dark">
+
+  <div class="container">
+    <div class="card card-register mx-auto mt-5">
+      <div class="card-header">Account Modify</div>
+      <div class="card-body">
+        <form action="../modify" method="post" id="modifyForm">
+          <div class="form-group">
+            <div class="form-row">
+              <div class="col-md-6">
+                <div class="form-label-group">
+                  <input type="text" id="firstName" class="form-control" name="name" placeholder="First name" required="required" autofocus="autofocus" value="<%=name %>">
+                  <label for="firstName">이름</label>
+                </div>
+                <p>
+
+
+                  <div class="form-label-group">
+
+                  </div>
+              </div>
+              <label>
+                <b>지역선택 : </b><select name="location" id="location">
+                  <option value="<%=location%>">현재 지역:
+                    <%=location%>
+                  </option>
+                  <option value="서울">서울</option>
+                  <option value="대전">대전</option>
+                  <option value="대구">대구</option>
+                  <option value="부산">부산</option>
+                  <option value="광주">광주</option>
+                  <option value="울산">울산</option>
+                  <option value="세종">세종</option>
+                  <option value="경남">경남</option>
+                  <option value="경북">경북</option>
+                  <option value="충남">충남</option>
+                  <option value="충북">충북</option>
+                  <option value="경기">경기</option>
+                  <option value="강원">강원</option>
+                  <option value="제주">제주</option>
+                  <option value="전남">전남</option>
+                  <option value="전북">전북</option>
+                </select>
+                <div class="form-label-group">
+
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label-group">
+              <input type="email" id="inputEmail" class="form-control" name="email" placeholder="Email address" required="required" value="<%= email %>" disabled>
+              <label for="inputEmail">이메일 주소는 수정하실 수 없습니다.</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-row">
+              <div class="col-md-6">
+                <div class="form-label-group">
+                  <input type="password" id="inputPassword" class="form-control" placeholder="Password" required="required">
+                  <label for="inputPassword">암호</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-label-group">
+                  <input type="password" id="confirmPassword" class="form-control" name="password" placeholder="Confirm password" required="required">
+                  <label for="confirmPassword">암호확인 </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <a class="btn btn-primary btn-block" href="JavaScript:onclick()">수정하기</a>
+        </form>
+        <div class="text-center">
+          <a class="d-block small mt-3" href="/dashboard">뒤로가기</a>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">수정 실패</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="modalText">암호가 맞지 않거나 잘못된 데이터를 입력하시려고 하셨습니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if(locals.result == 'email'){ %>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('.modal-title').text('수정 실패!');
+      $('#modalText').text('암호가 맞지 않거나 잘못된 데이터를 입력하시려고 하셨습니다.');
+      $('.modal').modal('show');
+    });
+  </script>
+  <%}else if(locals.result == 'fail'){ %>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('.modal-title').text('수정 실패!');
+      $('#modalText').text('암호가 맞지 않거나 잘못된 데이터를 입력하시려고 하셨습니다.');
+      $('.modal').modal('show');
+    });
+  </script>
+  <%} %>
+</body>
+
+</html>

@@ -281,9 +281,10 @@ router.post('/register', function(req, res) {
       registercode: authmailcode, //인증코드 생성
       confirm: 'N',
       todaynow: 'N',
-      bus: '{"list":[{"status": false, "arsId": "", "favorite": "","sido": "","use":"N" }]}',
-      subway: '{"list":[{"status": false, "stationName": "", "stationCode": "", "favorite": "", "sido": "", "line": "","use":"N", "updown" : "1"}]}',
-      traffic: '{"home": {"status": true, "centerLon":"126.983064", "centerLat": "37.580363", "cityname": "서울 종로구","use":"N" },"company": {"status": true, "centerLon":"126.983064", "centerLat": "37.580363", "cityname": "서울 종로구", "use":"N" },"etc": {"status": true, "centerLon":"126.983064", "centerLat": "37.580363", "cityname": "서울 종로구", "use":"N" }}'
+      bus: '{"list":[{"status": true, "arsId": "01129", "favorite": "700,707","sido": "서울","use":"N" }]}',
+      subway: '{"list":[{"status": true, "stationName": "강남", "stationCode": "0222", "favorite": "", "sido": "서울", "line": "s02", "updown" : "1", "use":"N"}]}',
+      traffic: '{"home": {"status": true, "centerLon":"126.983064", "centerLat": "37.580363", "cityname": "서울 종로구","use":"N" },"company": {"status": true, "centerLon":"126.983064", "centerLat": "37.580363", "cityname": "서울 종로구", "use":"N" },"etc": {"status": true, "centerLon":"126.983064", "centerLat": "37.580363", "cityname": "서울 종로구", "use":"N" }}',
+      weather: 'true'
     }]
 
     knex('AutumnRain_Users').insert(insertValue).then(() => console.log("Users data inserted"))
@@ -299,7 +300,7 @@ router.post('/register', function(req, res) {
             transporter.sendMail({
               from: emailinfo.email,
               to: email,
-              subject: '출근마스터 인증메일 입니다.',
+              subject: '교통마스터 인증메일 입니다.',
               html: data
             }, (err, info) => {
 
@@ -499,7 +500,8 @@ router.get('/myinfo', function(req, res) {
         todaynow: rows[0].todaynow,
         lat: lat,
         lng: lng,
-        product: commuteUtil.productCodeToName(rows[0].product)
+        product: commuteUtil.productCodeToName(rows[0].product),
+        weather: rows[0].weather
       })
     })
 
@@ -531,10 +533,9 @@ router.post('/myinfo', function(req, res) {
       }
       //즐겨찾기 노선 검사
       if (!checkForm.checkBusFavorite(busList[i].favorite)) {
-
         res.render('./commuteMaster/index.ejs', {
           result: 'busfavorite',
-          reason: '버스노선에 , 한글 영어 이외의 글자가 있습니다.'
+          reason: '버스노선에 , 한글 영어 이외의 글자(공백)가 있습니다.'
         })
         return;
         console.log(busList[i].favorite)
@@ -565,7 +566,7 @@ router.post('/myinfo', function(req, res) {
       if (!checkForm.checkStationName(subwayList[i].stationName)) {
         res.render('./commuteMaster/index.ejs', {
           result: 'stationname',
-          reason: '지하철 역은 한글 혹은 숫자만 허용됩니다.'
+          reason: '지하철 역은 한글 혹은 숫자만 허용됩니다. 공백도 피해주세요. 예를들어 강남역은 강남만 입력하시면 됩니다.'
         })
         return;
       }
@@ -657,7 +658,8 @@ router.post('/myinfo', function(req, res) {
       lat: parseFloat(lat),
       lng: parseFloat(lng),
       todaynow: req.body.todaynow,
-      product: commuteUtil.productNameToCode(req.body.product)
+      product: commuteUtil.productNameToCode(req.body.product),
+      weather: req.body.weather
     }) //confirm => Y
     .then(function(result) {
       console.log(result)
@@ -669,6 +671,10 @@ router.post('/myinfo', function(req, res) {
 //busid 설명
 router.get('/busid', function(req, res) {
   res.render('./commuteMaster/busid.html')
+});
+//busid 설명
+router.get('/ok', function(req, res) {
+  res.render('./commuteMaster/ok.html')
 });
 
 //accountLink 설명

@@ -5,35 +5,65 @@ exports.fisrtTransName = function(str) {
     case '첫 번째':
       result = 1
       break;
+    case '첫 번재':
+      result = 1
+      break;
     case '두 번째':
+      result = 2
+      break;
+    case '두 번재':
       result = 2
       break;
     case '세 번째':
       result = 3
       break;
+    case '세 번재':
+      result = 3
+      break;
     case '네 번째':
+      result = 4
+      break;
+    case '네 번재':
       result = 4
       break;
     case '다섯 번째':
       result = 5
       break;
+    case '다섯 번재':
+      result = 5
+      break;
     case '여섯 번째':
+      result = 6
+      break;
+    case '여섯 번재':
       result = 6
       break;
     case '일곱 번째':
       result = 7
       break;
+    case '일곱 번재':
+      result = 7
+      break;
     case '여덜 번째':
+      result = 8
+      break;
+    case '여덜 번재':
       result = 8
       break;
     case '아홉 번째':
       result = 9
       break;
+    case '아홉 번재':
+      result = 9
+      break;
     case '열 번째':
       result = 10
       break;
+    case '열 번재':
+      result = 10
+      break;
     default:
-    result = str
+      result = str
   }
   return result
 }
@@ -1470,4 +1500,61 @@ exports.CodeToStr = function(lineStr) {
       break;
   }
   return line;
+}
+
+
+exports.subwayLineToName = function(str) {
+  let line = '';
+
+  switch (str) {
+    case '1069':
+      line = '인천 1호선'
+      break;
+    case '1065':
+      line = '공항철도'
+      break;
+    case '1075':
+      line = '분당선'
+      break;
+    case '1063':
+      line = '경의 중앙선'
+      break;
+    case '1077':
+      line = '신분당선'
+      break;
+    case '1071':
+      line = '수인선'
+      break;
+      //1~9호선
+    case '1001':
+      line = '1호선'
+      break;
+    case '1002':
+      line = '2호선'
+      break;
+    case '1003':
+      line = '3호선'
+      break;
+    case '1004':
+      line = '4호선'
+      break;
+    case '1005':
+      line = '5호선'
+      break;
+    case '1006':
+      line = '6호선'
+      break;
+    case '1007':
+      line = '7호선'
+      break;
+    case '1008':
+      line = '8호선'
+      break;
+    case '1009':
+      line = '9호선'
+      break;
+    default:
+      line = ''
+  }
+  return line
 }

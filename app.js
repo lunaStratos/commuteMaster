@@ -7,7 +7,6 @@ const prompt = require('prompt');
 let knex = require('./config/database');
 var chatbotNuguHealthMaster = require('./chatbot/nugu.js')
 var chatbotNuguCommuteMaster = require('./chatbot/commute.js')
-var timetables = require('./uploadTime.js')
 //경로 모듈
 var oauthRouter = require('./routes/oauth');
 var commonRouter = require('./routes/common');
@@ -63,7 +62,6 @@ app.post('/healthMasterChatbot/:tagId', function(req, res) {
   console.log(req.params.tagId)
   //return chatbotNuguHealthMaster.nugu_chatbot(knex, req, res, req.params.tagId)
 });
-
 
 //누구 Health 체크용
 app.get('/nugu/health', function(req, res) {

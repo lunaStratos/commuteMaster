@@ -559,6 +559,27 @@
                     </div>
 
                     <!--지도-->
+                    <h3>종합정보에 날씨 사용여부</h3>
+                    <p>종합정보를 들을때 날씨를 들을지 않들을지 선택을 할 수 있습니다.</p>
+
+                    <div class="form-group">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+                                      <input type='radio' name='weather' value='true' <% if(weather == 'true'){ %> checked="checked"<% }%> /> Yes
+                                      <input type='radio' name='weather' value='false' <% if(weather == 'false'){ %> checked="checked"<% }%> /> No
+
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-label-group">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--지도-->
                     <h3>주유소 위치 설정</h3>
                     <p>설정 위치에서 반경 900m로 조회합니다. 지도위에서 클릭하시면 경도와 위도를 자동으로 읽습니다.</p>
                     <p>검색은 지도 아래의 검색창을 이용해 주세요.</p>

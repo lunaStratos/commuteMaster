@@ -33,12 +33,25 @@ const commuteUtil = require("../jscode/commute/commuteUtil.js"); //로직 유틸
 
 //최초실행
 exports.nugu_chatbot = (knex, req, res, tagId) => {
+
   const appTitle = '교통마스터' // 앱 타이틀
-  //마지막 말하는 부분 Random
-  const lastText = randomField('다음 명령을 말해주세요', '다음 질문이 있으신가요', '이제 어떤 것을 해드릴까요.', '이제 명령을 해 주세요.', '다른 질문이 있으신가요?', '이제 질문해주세요!', '또 궁금하신게 있으신가요?')
+  // 마이크 오픈 방지 위한 Random LastText
+  const lastText = randomField(
+    '다음 명령을 말해주세요',
+    '다음 질문이 있으신가요',
+    '이제 어떤 것을 해드릴까요.',
+    '이제 명령을 해 주세요.',
+    '다른 질문이 있으신가요?',
+    '이제 질문해주세요!',
+    '또 궁금하신게 있으신가요?',
+    '이제 질문해주세요!',
+    '이제 어떤 걸 도와드릴까요?',
+  )
   let output = {};
+  //log
   console.log(JSON.stringify(req.body)) //console log view
 
+  //OAuth 설정
   let oauthFlag = false // oauth 여부 true : false
   let accessToken = 'test'
   if (req.body.context.session.hasOwnProperty('accessToken')) {
@@ -46,8 +59,9 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     accessToken = req.body.context.session.accessToken
   }
 
-  const timeUTC = 9 * 3600000 // KST에 맞추기
-  let d = new Date(new Date().getTime() + timeUTC) // KST 시각 조정
+  //시간 설정
+  const timeUTC = 9 * 3600000 // GCP 앱 엔진에 따른 KST에 맞추기(+9)
+  let d = new Date(new Date().getTime() + timeUTC) // GCP 앱 엔진에 따른 KST 시각 조정
 
   //====================================================================
 
@@ -59,17 +73,18 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       })
   })
 
-  //내 정보 가져오기
+  //내 정보 가져오기 => OAuth 사용시
   const myInfoSQL = (accessToken) => new Promise(function(resolved, rejected) {
     knex('AutumnRain_Users').where('accessToken', accessToken)
       .then(rows => {
         resolved(rows[0]) //　[0]　없이 사용가능
       })
   })
+
   /**
    * 인천 지하철 데이터
    */
-  //역이름,
+  //역이름
   const subwayTimetableForInchon = (insertData) => new Promise(function(resolved, rejected) {
     knex('autumnrain_inchon').where({
         'station': insertData.stationName,
@@ -84,7 +99,6 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
 
   //wgs84 일반좌표를 KATEC TM128로 변환
   const wgs84ToKATEC_function = (longitude, latitude) => new Promise(function(resolved, rejected) {
-
     var from = 'WGS84'
     var to = 'KATEC'
     proj4.defs('WGS84', "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
@@ -98,56 +112,34 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     resolved(wgs84ToKATEC) //　[0]　없이 사용가능
   })
 
+  /**
+   * 지하철 실시간 찾을때 재귀로 오류시 계속 부름
+   * 600에러시에만 처리
+   */
+  async function realtimeRecursion(jsons, insertData) {
+    if (jsons.code == 600) {
+      const result = await subwayRealtime(insertData)
+      return realtimeRecursion(result, insertData)
+    } else {
+      return jsons
+    }
+  } // realtimeRecursion
 
   /**
-   * 버스 실시간 정보
-   * param: location
-   * param2: bus station id
-   * @return String Text
+   * 루트에 쓰이는 재귀호출
+   * 오류시 재귀로 계속 부름
+   * 600 에러(일시적 오류)시에만 처리
    */
-  async function bus_action() {
+  async function routeRecursion(jsons, searchStation) {
 
-    let textField = '' //텍스트 필드
-
-    const location = req.body.action.parameters.busLocation.value //정류장 번호
-    const stationCode = req.body.action.parameters.busStatonCode.value //정류장 번호
-
-    let insertData = {}
-    insertData.arsId = stationCode
-    const getBusinfo = await businfo(insertData);
-    if (getBusinfo.code != 200) {
-      output.businfo = '죄송합니다. 없는 버스정류장 이거나 서버에 이상이 있어서 정보를 불러올 수 없었습니다. 다시 시도해주세요. '
-
+    if (jsons.code == 600) { //600에러시 처리
+      const result = await subwayRoute2(searchStation)
+      return routeRecursion(result, searchStation)
     } else {
-      const buslist = getBusinfo.list
-
-      //List for
-      for (var i = 0; i < buslist.length; i++) {
-
-        const busName = buslist[i].rtNm // 버스이름 (서초01, 641 형태)
-        const bus1 = buslist[i].arrmsg1 // 1번째 버스 예상시간
-        const bus2 = buslist[i].arrmsg2 // 2번째 버스 예상시간
-
-        //저상버스 여부 (for handicap)
-        let busType1 = '';
-        let busType2 = '';
-        if (buslist[i].busType1 == 1) busType1 = '저상버스, ';
-        if (buslist[i].busType2 == 1) busType2 = '저상버스, ';
-
-        //makeText
-        textField += randomField(busName + '의 첫번째 버스는 ' + busType1 + bus1 + ', 2번째 버스는 ' + busType2 + bus2,
-          busName + '의 첫번째 버스는 ' + busType1 + bus1 + ', 2번째 버스는 ' + busType2 + bus2,
-          busName + '의 첫번째 버스는 ' + busType1 + bus1 + ', 2번째 버스는 ' + busType2 + bus2,
-          busName + '의 첫번째 버스는 ' + busType1 + bus1 + ', 2번째 버스는 ' + busType2 + bus2)
-      } //List for
-      textField += '입니다. ' + lastText
-      output.businfo = textField
+      return jsons
     }
 
-    return res.send(makeJson(output))
-  } // bus_action
-
-
+  } // routeRecursion
 
   /**
    * 지하철 시간표
@@ -186,10 +178,10 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       stationName = stationName.substring(0, stationName.length - 1)
     }
 
-    console.log('stationSido', stationSido)
-    console.log('stationName', stationName)
-    console.log('stationLine', stationLine)
-    console.log('stationUpdown', stationUpdown)
+    // console.log('stationSido', stationSido)
+    // console.log('stationName', stationName)
+    // console.log('stationLine', stationLine)
+    // console.log('stationUpdown', stationUpdown)
 
     let insertData = {}
     insertData.stationLine = stationLine
@@ -225,21 +217,15 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
 
       //부산의 경우 시+분 String으로 추가 데이터를 보내야 한다.
       insertData.stationCode = stationCodeBookBusan.nameToSubwayCodeBusan(stationName, 'b0' + stationLine)
-      insertData.starttime = ('0' + new Date().getHours()).slice(-2) + '' + ('0' + d.getMinutes()).slice(-2)
-      console.log('insertData.starttime ', new Date().getHours())
+      insertData.starttime = ('0' + d.getHours()).slice(-2) + '' + ('0' + d.getMinutes()).slice(-2)
+      //console.log('insertData.starttime ', new Date().getHours())
       getStationTimetable = await subwayTimetableForBusan(insertData);
 
     }
-    // else if (stationSido == '인천') {
-    //   //인천의 경우 이름으로 검색 가능
-    //   console.log(insertData)
-    //   const templist = await subwayTimetableForInchon(insertData)
-    //   getStationTimetable = {
-    //     list: JSON.parse(templist.timetable),
-    //     code: 200
-    //   }
-    // }
-    console.log(getStationTimetable)
+
+    //console.log(getStationTimetable)
+
+    //에러처리
     if (getStationTimetable.code == 300) {
       textField = '죄송합니다. 호선이나 도시가 일치하지 않아서 정보를 불러올 수 없었습니다. '
       textField += lastText
@@ -247,12 +233,12 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       return res.send(makeJson(output))
 
     } else if (getStationTimetable.code == 400) {
-      textField = '죄송합니다. 서버에 에러가 있어서 정보를 불러올 수 없었습니다. '
+      textField = stationName + '역은 현재 운행중이 아닌거 같습니다. '
       textField += lastText
       output.stationTimetable = textField
       return res.send(makeJson(output))
 
-    } else {
+    } else { //성공시
       const stationTimetablelist = getStationTimetable.list
 
       let saveTimeList = new Array() //save array
@@ -261,9 +247,6 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       //유저설정: 유저설정이 없으면 그냥 25분으로 설정
       //최대 기다릴수 있는 시각 = 현재시각 + 유저타임
       const waitTime = new Date(d.getTime() + 25 * 60000)
-      //const waitTime = d
-      //console.log('stationTimetablelist: ' + JSON.stringify(stationTimetablelist))
-      //List
 
       let countSave = 0;
       let beforeTimeHour = ''
@@ -332,20 +315,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     return res.send(makeJson(output))
   } // station_timetable_action
 
-  /**
-   * 재귀로 오류시 계속 부름
-   * 600에러시에만 처리
-   */
-  async function realtimeRecursion(jsons, insertData){
 
-    if (jsons.code == 600) {
-      const result = await subwayRealtime(insertData)
-      return realtimeRecursion(result, insertData)
-    }else{
-      return jsons
-    }
-
-  }
 
   /**
    * 지하철 실시간
@@ -375,11 +345,9 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       stationName = stationName.substring(0, stationName.length - 1)
     }
 
-
-    console.log(stationName)
-    console.log(stationLine)
-    console.log(stationUpdn)
-
+    // console.log(stationName)
+    // console.log(stationLine)
+    // console.log(stationUpdn)
 
     if (!realtimeStation.checkStation(stationName)) {
       textField = '죄송합니다. ' + stationName + ' 역은 지원하지 않는 역입니다. 현재 실시간 도착정보는 서울시의 역만 가능합니다.' + lastText
@@ -391,8 +359,8 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     insertData.stationName = stationName
     let getStationRealtime = await subwayRealtime(insertData);
     //console.log(getStationRealtime)
-    getStationRealtime = await realtimeRecursion(getStationRealtime,insertData)
-    console.log('getStationRealtime.code : ', getStationRealtime.code)
+    getStationRealtime = await realtimeRecursion(getStationRealtime, insertData)
+    //console.log('getStationRealtime.code : ', getStationRealtime.code)
     if (getStationRealtime.code == 600) {
       textField = '죄송합니다. ' + stationName + ' 역은 현재 일시적인 서버 이상이 있어서 정보를 불러올 수 없었습니다. ' + lastText
       output.stationRealtime = textField
@@ -446,7 +414,6 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
 
         // console.log('stationUpdn => ', stationUpdn)
         // console.log('switchUpdn => ', switchUpdn)
-        //
         // console.log('stationLineCode => ', stationLineCode)
         // console.log('subwaylineStr => ', subwaylineStr)
 
@@ -524,7 +491,8 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   async function weather_mise_now_action() {
 
     let textField = '' //텍스트 필드
-    const weatherLocation = req.body.action.parameters.weatherMiseLocation.value //지역 위치
+    let weatherLocation = req.body.action.parameters.weatherMiseLocation.value //지역 위치
+    weatherLocation = weatherLocation.substring(0,2)
 
     let insertData = {}
     insertData.location = weatherLocation
@@ -580,7 +548,6 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
         //혼잡도 입니다. - 0: 정보없음 - 1: 원할 - 2: 서행 - 3: 지체 - 4: 정체
         if (getTrafficList[i].properties.hasOwnProperty('congestion')) congestion += parseInt(getTrafficList[i].properties.congestion);
 
-
         if (getTrafficList[i].properties.hasOwnProperty('isAccidentNode')) {
           if (getTrafficList[i].properties.isAccidentNode == 'Y') {
             accident = commuteUtil.accidentLong(getTrafficList[i].properties.accidentDetailCode)
@@ -591,8 +558,8 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
 
       } //List for
       const congestionResult = parseInt(congestion) / getTrafficList.length
-      console.log(congestion)
-      console.log(congestionResult)
+      // console.log(congestion)
+      // console.log(congestionResult)
       textField = randomField(
         '현재 ' + trafficLocation + '의 평균 혼잡도는 ' + commuteUtil.congestion(congestionResult) + ' 입니다. ' + accidentResult,
         '지금 ' + trafficLocation + '의 평균 혼잡도는 ' + commuteUtil.congestion(congestionResult) + ' 이랍니다. ' + accidentResult,
@@ -620,7 +587,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     let textField = '';
     const trafficLocation = req.body.action.parameters.trafficLocationForOil.value //지역 위치 (구)
 
-    let trafficLocationProduct = 'B027'; // 휘발유
+    let trafficLocationProduct = 'B027'; // 휘발유로 시작
     if (req.body.action.parameters.hasOwnProperty('trafficLocationForOilProduct')) {
       trafficLocationProduct = req.body.action.parameters.trafficLocationForOilProduct.value //상품: 휘발유
     }
@@ -665,94 +632,10 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     output.oilinfo = textField
     return res.send(makeJson(output))
   }
-  /*
-  지하철 경로 안내
-   */
-  // async function subway_route_action() {
-  //   console.log('subwayRoute')
-  //   let textField = '' //텍스트 필드
-  //
-  //   //시작역
-  //   let startStation = '';
-  //   if (req.body.action.parameters.hasOwnProperty('startStation')) {
-  //     startStation = req.body.action.parameters.startStation.value
-  //   }
-  //   //끝역
-  //   let endStation = '';
-  //   if (req.body.action.parameters.hasOwnProperty('endStation')) {
-  //     endStation = req.body.action.parameters.endStation.value
-  //   }
-  //   console.log(startStation)
-  //   console.log(endStation)
-  //   //역 찾고 데이터 얻기
-  //   const searchStation = stationCodeXy.subwayXY(startStation, endStation)
-  //   console.log(JSON.stringify(searchStation))
-  //
-  //   const subwayRouteParse = await subwayRoute(searchStation)
-  //
-  //   console.log(JSON.stringify(subwayRouteParse))
-  //
-  //   //에러시
-  //   if (subwayRouteParse.code == 600) {
-  //     output.subwayRoute = '죄송합니다. 중복되는 역 혹은 존재하지 않는 역을 말하신거 같습니다. ' + lastText
-  //     return res.send(makeJson(output))
-  //     return;
-  //   }
-  //
-  //   //에러시
-  //   if (subwayRouteParse.code != 200) {
-  //     output.subwayRoute = '죄송합니다. 존재하지 않는 역을 말했거나 서버에 이상이 있습니다. ' + lastText
-  //     return res.send(makeJson(output))
-  //     return;
-  //   }
-  //   //정상시
-  //   const subwayRouteList = subwayRouteParse.list[0].pathList
-  //   const subwayRoutePrice = '요금은 ' + commuteUtil.subwayPrice(subwayRouteParse.list[0].distance) + '원 입니다. '
-  //   const subwayRouteTime = '총 ' + subwayRouteParse.list[0].time + '분 걸리며, ' + subwayRoutePrice
-  //
-  //     for (var i = 0; i < subwayRouteList.length; i++) {
-  //       const line = subwayRouteList[i].routeNm // 호: 5호선
-  //       const sStation = subwayRouteList[i].fname //시작역: 둔촌역
-  //       const eStation = subwayRouteList[i].tname //끝역: 대치역
-  //       const stationLength = (subwayRouteList[i].railLinkList).length
-  //       if (subwayRouteList.length == 1) {
-  //         textField += sStation + '에서 ' + line + '을 타고 ' + stationLength + '정거장 지나서 ' + eStation + '에서 내리면 됩니다. '
-  //       } else {
-  //         if (i == 0) {
-  //           textField += sStation + '에서 ' + line + '을 타고 ' + stationLength + '정거장 지나서 ' + eStation + '에서 갈아 탄 후, '
-  //         }
-  //         if (i == subwayRouteList.length - 1) {
-  //           textField += sStation + '에서 ' + line + '을 타고 ' + stationLength + '정거장 지나서 ' + eStation + '에서 내리면 됩니다. '
-  //         }
-  //       }
-  //
-  //     }
-  //
-  //   textField += subwayRouteTime + lastText
-  //   output.subwayRoute = textField
-  //   return res.send(makeJson(output))
-  //
-  // }
-
-  /**
-   * 재귀로 오류시 계속 부름
-   * 600에러시에만 처리
-   */
-  async function routeRecursion(jsons, searchStation){
-
-    if (jsons.code == 600) {
-      const result = await subwayRoute2(searchStation)
-      return routeRecursion(result, searchStation)
-    }else{
-      return jsons
-    }
-
-  }
 
   /*
   지하철 경로 안내
-
-
+  오류시 위 재귀로 처리
    */
   async function subway_route_action() {
     console.log('subwayRoute')
@@ -764,56 +647,47 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       startStation = req.body.action.parameters.startStation.value
     }
 
-
-
     //끝역
     let endStation = '';
     if (req.body.action.parameters.hasOwnProperty('endStation')) {
       endStation = req.body.action.parameters.endStation.value
     }
 
-    //NUGU에서 역 이름 처리를 못함으로 내가 처리
+    // startStation NUGU에서 역 이름 처리를 못함으로 내가 처리
     if (startStation.substring(startStation.length - 1, startStation.length) == '역') {
       startStation = startStation.substring(0, startStation.length - 1)
     }
-
-    //NUGU에서 역 이름 처리를 못함으로 내가 처리
+    //endStation NUGU에서 역 이름 처리를 못함으로 내가 처리
     if (endStation.substring(endStation.length - 1, endStation.length) == '역') {
       endStation = endStation.substring(0, endStation.length - 1)
     }
 
-    console.log(startStation)
-    console.log(endStation)
+    // console.log(startStation)
+    // console.log(endStation)
     //역 찾고 데이터 얻기
     const searchStation = stationCodeXy.subwayXY(startStation, endStation)
     const startLine = commuteUtil.CodeToStr(searchStation.startLine)
     const endLine = commuteUtil.CodeToStr(searchStation.endLine)
-    console.log(JSON.stringify(searchStation))
+    //console.log(JSON.stringify(searchStation))
 
     let subwayRouteParse = await subwayRoute2(searchStation)
 
-    //에러시
+    //재귀처리 => 이상시 다시 부름, 없으면 그냥 처리
     subwayRouteParse = await routeRecursion(subwayRouteParse, searchStation)
-    // if (subwayRouteParse.code == 600) {
-    //   subwayRouteParse = await subwayRoute2(searchStation)
-    //   if (subwayRouteParse.code == 600) {
-    //     output.subwayRoute = '죄송합니다. 서버에 일시적인 에러가 생겼습니다. 다시한번 시도해주세요.  ' + lastText
-    //     return res.send(makeJson(output))
-    //     return;
-    //   }
-    //
-    // }
 
-    console.log(JSON.stringify(subwayRouteParse))
-    //에러시
+    //console.log(JSON.stringify(subwayRouteParse))
+
+    //에러: 같은역을 불렀거나, 지원하지 않는 역
     if (subwayRouteParse.code == 400) {
-      output.subwayRoute = '죄송합니다. 혹시 같은 역을 말하지 않았나요? 다시 한번 시도해 주세요. ' + lastText
+      output.subwayRoute = '죄송합니다. 혹시 같은 역이나 지원하지 않는 역을 말하지 않았나요? 다른역으로 시도해 주세요. ' + lastText
       return res.send(makeJson(output))
       return;
     }
 
     //정상시
     const subwayRouteList = subwayRouteParse.list
+
+    //데이터
     const subwayRouteStations = (subwayRouteList.shtStatnNm).split(',')
     const subwayRouteMsg = subwayRouteList.shtTransferMsg
 
@@ -829,6 +703,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     let trasferArr = (subwayRouteList.shtStatnId).split(',')
     let tempCode = '';
     let transSave = []
+    let transLine = []
     for (var i = 0; i < trasferArr.length; i++) {
       if (i == 0) {
         tempCode = trasferArr[i].substring(0, 4)
@@ -836,47 +711,54 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
         if (trasferArr[i].substring(0, 4) != '') {
           if (tempCode == trasferArr[i].substring(0, 4)) {
 
-          } else {
+          } else { //다음역이 같지 않으면 = 환승할 역이 있다면
             tempCode = trasferArr[i].substring(0, 4)
-            transSave.push(subwayRouteStations[i])
+            //역 라인과 정보 저장(저장 되지 않을 경우를 대비해서 '')
+            transSave.push({
+              line: commuteUtil.subwayLineToName(tempCode),
+              name: subwayRouteStations[i]
+            })
           }
         }
       }
 
     }
 
-    // console.log(subwayRouteStations)
-    // console.log(transSave)
-
-    let trasferStr = ''
+    // 환승역
+    //환승역이 0개라면 존재하지 않음으로 for문이 돌아가지 않음. + 입니다도 없음.
+    let transferStr = ''
     for (var i = 0; i < transSave.length; i++) {
       if (i == 0) {
-        trasferStr += '환승역은 '
+        transferStr += '환승역은 '
       }
-      trasferStr += transSave[i] + ', '
+      transferStr += transSave[i].line + ' ' + transSave[i].name + ', '
     }
+    //만약 길이가 0이 아니라면
     if (transSave.length != 0) {
-      trasferStr += ' 입니다. '
+      transferStr += ' 입니다. '
     }
 
-    textField += startLine + ' ' + startStation + '에서 ' + endLine + ' ' + endStation + '까지 ' + proceedStation + '개 역을 지납니다. ' + trasfer + trasferStr + lastText
+    //텍스트 필드
+    textField += startLine + ' ' + startStation + '에서 ' + endLine + ' ' + endStation + '까지 ' + proceedStation + '개 역을 지납니다. ' + trasfer + transferStr + lastText
     output.subwayRoute = textField
     return res.send(makeJson(output))
 
   }
 
-
+  //====================================================================
+  //=============================OAUTH영역==============================
   //====================================================================
 
-
-
+  /**
+   *석유 가격정보
+   **/
   async function oilinfo_oauth_action() {
-
+    console.log('oilinfo_oauth_action')
     let textField = '' //텍스트 필드
 
     //oauth 연동여부 체크
     if (!oauthFlag) {
-      output.oilinfoOauth = '이 기능은 계정연동이 필요합니다. 계정연동을 하신후 이용해 주세요. '
+      output.oilinfoOauth = '이 기능은 계정연동이 필요합니다. 계정연동을 하신 후 이용해 주세요. '
       return res.send(makeJson(output))
       return;
     }
@@ -936,9 +818,10 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   var ejs = require("ejs");
   /**
    * 주유소 최저가 이메일로 받기
-   * @return String Text
+   * return String Text
    */
   async function oilinfo_email_oauth_action() {
+    console.log('oilinfo_email_oauth_action')
     //oauth 연동여부 체크
     if (!oauthFlag) {
       output.oilinfoEmailOauth = '이 기능은 계정연동이 필요합니다. 계정연동을 하신후 이용해 주세요. '
@@ -948,11 +831,12 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
 
     let textField = '' //텍스트 필드
 
+    //내정보 받기
     const myinfo = await myInfoSQL(accessToken)
 
-    const longitude = parseFloat(myinfo.lng).toFixed(6) //129.07564159999998
-    const latitude = parseFloat(myinfo.lat).toFixed(6)
-    const product = myinfo.product // 상품정보
+    const longitude = parseFloat(myinfo.lng).toFixed(6) //128
+    const latitude = parseFloat(myinfo.lat).toFixed(6) // 38
+    const product = myinfo.product // 상품정보 (휘발유)
 
     var wgs84ToKATEC = await wgs84ToKATEC_function(longitude, latitude)
 
@@ -973,7 +857,6 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     var to = 'WGS84'
     proj4.defs('WGS84', "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
     proj4.defs('TM128', '+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43');
-
 
     for (var i = 0; i < arrList.length; i++) {
       const gis_X = arrList[i].GIS_X_COOR
@@ -1054,7 +937,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   } // oilinfo_email_action
 
   /**
-   * 버스 받기
+   * 버스 실시간 도착
    * @return String Text
    */
   async function bus_oauth_action() {
@@ -1072,8 +955,9 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     const myinfo = await myInfoSQL(accessToken)
     const busJson = JSON.parse(myinfo.bus) //JSon 변환
     console.log('busNum ', busNum)
-    console.log('length ', busJson.list.length)
+    // console.log('length ', busJson.list.length)
 
+    //저장된 버스 없을때
     if (busJson.list.length < (busNum + 1)) {
       textField = '그 번호엔 현재 저장된 버스정류장이 없습니다. 로그인 후 페이지에서 설정저장 후 사용해 주세요. '
       output.busOauth = textField
@@ -1081,7 +965,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       return;
     }
 
-    //저장 기능확인
+    //저장된 버스 없을때
     if (busJson.list[busNum].status == false) {
       textField = '그 번호엔 현재 저장된 버스정류장이 없습니다. 로그인 후 페이지에서 설정저장 후 사용해 주세요. '
       output.busOauth = textField
@@ -1089,7 +973,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       return;
     } //status == false stop
 
-    //
+    //버스 실시간 데이터 요청
     let insertData = {}
     insertData.arsId = busJson.list[busNum].arsId
     const getBusinfo = await businfo(insertData);
@@ -1098,13 +982,15 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     const favorite = (busJson.list[busNum].favorite).split(',')
     const useFlag = favorite.length
 
+    //600 에러
     if (getBusinfo.code == 600) {
       textField = '죄송합니다. 없는 버스정류장 이거나 서버에 이상이 있어서 정보를 불러올 수 없었습니다. 다시 시도해주세요. '
 
+      //없는 버스 정류장
     } else if (getBusinfo.code == 400) {
       textField = '지원하지 않는 버스정류장을 입력하셨습니다. 버스기능은 서울권에서만 가능합니다. 로그인 후 다시 확인해 보시는건 어떨까요? '
 
-    } else {
+    } else { //데이터 성공
 
       const buslist = getBusinfo.list
       let countSame = 0;
@@ -1128,7 +1014,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
           //console.log('busName ', busName)
 
           for (var j = 0; j < favorite.length; j++) {
-            console.log('favorite[j] ', favorite[j])
+            //console.log('favorite[j] ', favorite[j])
             if (busName == favorite[j]) {
               //makeText
               textField += busName + '의 첫번째 버스는 ' + busType1 + ' ' + bus1 + ' , 2번째 버스는 ' + busType2 + bus2 + ', '
@@ -1170,10 +1056,13 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       return;
     }
 
-    const num = parseInt(commuteUtil.fisrtTransName(req.body.action.parameters.SubwayTimeNumOauth.value)) - 1  // 버스넘버: 1~5까지
+    const num = parseInt(commuteUtil.fisrtTransName(req.body.action.parameters.SubwayTimeNumOauth.value)) - 1 // 버스넘버: 1~5까지
     const myinfo = await myInfoSQL(accessToken)
     const stationJson = JSON.parse(myinfo.subway)
     const stationList = stationJson.list
+    console.log('num ', num)
+    console.log('stationList ', stationList)
+    console.log('stationList ', stationList.length)
 
     //저장 기능확인
     if (stationList.length < (num + 1)) {
@@ -1199,25 +1088,19 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     insertData.updown = commuteUtil.sidoUpdown(stationList[num].sido, stationList[num].updown) //상하행선 -> 부산의 경우 0, 1
     insertData.sido = stationList[num].sido
     insertData.day = commuteUtil.sidoTime(d.getDay()) // 요일 입력 -> 인천이면 특수처리
-    console.log(insertData)
+    //console.log(insertData)
     let getStationTimetable = ''
 
+    //서울과 인천 & 경기는 동시에 사용 가능
     if (stationList[num].sido == '서울' || stationList[num].sido == '인천') {
       getStationTimetable = await subwayTimetable(insertData);
     } else if (stationList[num].sido == '부산') {
       //부산의 경우 시+분 String으로 추가 데이터를 보내야 한다.
-      insertData.starttime = d.getHours() + '' + d.getMinutes()
+      insertData.starttime = ('0' + d.getHours()).slice(-2) + '' + ('0' + d.getMinutes()).slice(-2)
       getStationTimetable = await subwayTimetableForBusan(insertData);
-
     }
-    //  else if (stationList[num].sido == '인천') {
-    //   const templist = await subwayTimetableForInchon(insertData)
-    //   getStationTimetable = {
-    //     list: JSON.parse(templist.timetable),
-    //     code: 200
-    //   }
-    // }
 
+    //console.log(getStationTimetable)
 
     if (getStationTimetable.code == 300) {
       textField = '죄송합니다. 호선이나 도시가 일치하지 않아서 정보를 불러올 수 없었습니다. '
@@ -1226,7 +1109,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       return res.send(makeJson(output))
 
     } else if (getStationTimetable.code == 400) {
-      textField = '죄송합니다. 서버에 에러가 있어서 정보를 불러올 수 없었습니다. '
+      textField = stationList[num].stationName + '역은 현재 운행중이 아닌거 같습니다. '
       textField += lastText
       output.stationTimetableOauth = textField
       return res.send(makeJson(output))
@@ -1234,7 +1117,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     } else {
 
       const stationTimetablelist = getStationTimetable.list
-
+      console.log(getStationTimetable)
       //유저설정: 유저설정이 없으면 그냥 25분으로 설정
       const userWaitTime = parseInt(myinfo.waitTimeSubway)
       //최대 기다릴수 있는 시각 = 현재시각 + (유저타임 * 60초 *1000)
@@ -1243,6 +1126,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       let countSave = 0;
       let beforeTimeHour = ''
       let beforeRoute = ''
+
 
       //List
       for (var i = 0; i < stationTimetablelist.length; i++) {
@@ -1262,7 +1146,6 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
             beforeRoute = subwaydRoute
             countSave++ //올려줌
             textField += stationList[num].stationName + '역은 ' + subwaydRoute + '행이 ' + getStationTimeTableTime[0] + '시 ' + getStationTimeTableTime[1] + '분, '
-
           } else {
 
             //루트가 이전 루트와 같다면
@@ -1286,10 +1169,10 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
         }
 
       } // for
-      textField += textField + '가 ' + userWaitTime + '분 안에 있습니다. '
+      textField += '열차들이 ' + userWaitTime + '분 안에 있습니다. '
 
       //열차가 없었다면 텍스트 교체
-      if (countSave == 0) textField = '설정하신 시간 내에 도착하는 열차가 없습니다. ';
+      if (countSave == 0) textField = '설정하신 ' + stationList[num].stationName + '역에는 현재 시간 내에 도착하는 열차가 없습니다. ';
 
     } //200
 
@@ -1313,8 +1196,8 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     }
 
     //리스트는 0부터 시작하는관계로 -1을 해준다.
-    const num = parseInt(commuteUtil.fisrtTransName(req.body.action.parameters.SubwayRealNumOauth.value)) - 1  // 버스넘버: 1~10
-
+    const num = parseInt(commuteUtil.fisrtTransName(req.body.action.parameters.SubwayRealNumOauth.value)) - 1 // 버스넘버: 1~10
+    console.log('num ',  num)
     const myinfo = await myInfoSQL(accessToken)
     const subwayJson = JSON.parse(myinfo.subway)
 
@@ -1335,7 +1218,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       const line = (subwayJsonList[num].line)
       let getStationRealtime = await subwayRealtime(insertData);
       //console.log(getStationRealtime)
-      getStationRealtime = await realtimeRecursion(getStationRealtime,insertData)
+      getStationRealtime = await realtimeRecursion(getStationRealtime, insertData)
 
       //역 에러 처리
       if (getStationRealtime.code == 600) {
@@ -1535,13 +1418,33 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
       return res.send(makeJson(output))
       return;
     }
+
+    textField = '그럼 종합정보를 알아보겠습니다. '
     //토큰으로 내 정보 가져오기
     const myinfo = await myInfoSQL(accessToken)
+
+    const myLocation = myinfo.location
+    let insertData = {}
+    insertData.location = myLocation
+
+    //SQL사용
     /**
-     * 버스시간
-     * 지하철 시간
+     * 날씨정보
      */
 
+    const getWeatherMiseInfo = await nowWeatherMiseSQL(insertData) //T1H(varchar : Num), mise(varchar), PTY(varchar :Num)
+    //미세먼지는 12월 부터 4월까지 발생 5월 부터 11월까지는 안내 안함
+    if (myinfo.weather == 'true') {
+      if ((d.getMonth() + 1) < 5 && (d.getMonth() + 1) > 11) {
+        textField += myLocation + '의 날씨는 ' + commuteUtil.weatherStatus(getWeatherMiseInfo.PTY) + '에 ' + getWeatherMiseInfo.T1H + '도 이며, 미세먼지는 ' + (getWeatherMiseInfo.mise).trim() + ' 입니다. '
+      } else {
+        textField += myLocation + '의 날씨는 ' + commuteUtil.weatherStatus(getWeatherMiseInfo.PTY) + '에 ' + getWeatherMiseInfo.T1H + '도 입니다. '
+      }
+    }
+
+    /**
+     * 버스시간
+     */
     //버스정보
     const busJson = JSON.parse(myinfo.bus).list
     let textBus = '';
@@ -1627,16 +1530,10 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
         getStationTimetable = await subwayTimetable(insertData)
       } else if (stationList[i].sido == '부산') {
         //부산의 경우 시+분 String으로 추가 데이터를 보내야 한다.
-        insertData.starttime = d.getHours() + '' + d.getMinutes()
+        insertData.starttime = ('0' + d.getHours()).slice(-2) + '' + ('0' + d.getMinutes()).slice(-2)
         getStationTimetable = await subwayTimetableForBusan(insertData)
       }
-      // else if (stationList[i].sido == '인천') {
-      //   const templist = await subwayTimetableForInchon(insertData)
-      //   getStationTimetable = {
-      //     list: JSON.parse(templist.timetable),
-      //     code: 200
-      //   }
-      // }
+
 
       if (getStationTimetable.code == 300) {
 
@@ -1708,6 +1605,7 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     let textTraffic = ''
     const trafficArray = [traffic.home, traffic.company, traffic.etc]
     //for traffic
+    let countText = 0
     for (var i = 0; i < trafficArray.length; i++) {
       if (trafficArray[i].use == 'Y') {
 
@@ -1741,14 +1639,16 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
 
         } // getTrafficInfo.code != 200
 
-
+        countText++;
       } //Y
 
 
-    } //for traffic
-    textField += textTraffic
+    } // for traffic
+    if(countText != 0){
+      textField += textTraffic+ '입니다. '
+    }
 
-    textField += '입니다. ' + lastText;
+    textField += lastText;
     output.todayNowOauth = textField
     return res.send(makeJson(output))
   }
@@ -1844,12 +1744,22 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   //====================================================================
 
   function help_action() {
-    let textField = '교통마스터는 실시간 버스정류장의 상황과 지하철의 실시간과 시간표, 그리고 교통상황을 알려드립니다. 가령 '
-    textField += randomField(
-      '종로구의 교통 혼잡도를 알려줘, ',
-      '남성역의 다음 열차를 알려줘, '
-    )
-    textField += '라고 말해보세요. '
+
+    let textField = '교통마스터는 실시간 버스정류장의 상황과 지하철 시간표, 교통상황을 알려드립니다. '
+
+    //oauthFlag
+    if (oauthFlag) {
+      textField += randomField(
+        '현재는 계정연동 중이라 번호로 다양한 기능을 사용가능 합니다. 지원되는 명령어라고 말하시면 어떻게 사용하는지 알려드립니다.  ',
+        '현재는 계정연동 중이라 번호로 다양한 기능을 사용가능 하며, 지원되는 명령어라고 말하시면 어떻게 사용하는지 알려드립니다.  ',
+      )
+    } else {
+      textField += randomField(
+        '현재는 계정연동이 아니기에 지하철 역 루트, 30분 내 도착 시간표, 실시간 도착안내 기능을 지원하고 있습니다. 지원되는 명령어라고 말하시면 어떻게 사용하는지 알려드립니다.  ',
+        '현재는 계정연동이 아니기에 날씨와 광역시 혼잡도 그리고 최저가 주유소를 지원하고 있습니다. 지원되는 명령어라고 말하시면 어떻게 사용하는지 알려드립니다.  ',
+      )
+    }
+
     output.help = textField
     return res.send(makeJson(output));
   }
@@ -1857,15 +1767,40 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   //명령어 1개 랜덤으로 알려줌
   function support_action() {
     let textField = '교통마스터가 지원하는 명령어 중 한가지는 '
-    textField += randomField('서울의 23921 버스정류장 상황을 알려줘, 입니다.', '남성역의 다음 열차를 알려줘, 입니다.')
-    textField += lastText
+    if (oauthFlag) {
+      textField += randomField(
+        '서울 종로구의 교통 혼잡도를 알려줘, ',
+        '7호선 남성역의 상행선 시간표를 알려줘, ',
+        '보문역에서 강남역까지 가는 방법을 알려줘, ',
+        '5호선 강동역의 방화행 실시간 도착을 알려줘, ',
+        '부산 진구의 최저가 주유소를 알려줘, ',
+        '부산의 날씨를 알려줘, ',
+        //계정연동
+        ' 하우스의 교통정보를 알려줘, ',
+        '이메일을 보내줘, ',
+        ' 종합 정보를 알려줘, ',
+        ' 나의 주유소 가격정보, ',
+        ' 첫번째 버스를 알려줘, ',
+        ' 첫번째 지하철 역을 알려줘, ',
+        '첫번째 버스를 알려줘, '
+      )
+    } else {
+      textField += randomField(
+        '서울 종로구의 교통 혼잡도를 알려줘, ',
+        '7호선 남성역의 상행선 시간표를 알려줘, ',
+        '보문역에서 강남역까지 가는 방법을 알려줘, ',
+        '5호선 강동역의 방화행 실시간 도착을 알려줘, ',
+        '부산 진구의 최저가 주유소를 알려줘, ',
+        '부산의 날씨를 알려줘, ')
+    }
+
+    textField += '입니다. '+ lastText
 
     output.support = textField
     return res.send(makeJson(output));
   }
 
   //Oauth 안쓰고도 물어볼수는 있음
-  const BUS_INTENT = 'action.bus'; // X
   const STATION_TIMETABLE_INTENT = 'action.stationTimetable'; // 지하철 역 시간표
   const STATION_REALTIME_INTENT = 'action.stationRealtime'; // 지하철 역 실시간
   const WEATHER_MISE_NOW_INTENT = 'action.weatherMiseNow'; //오늘의 날씨와 미세먼지(밖에 나가기 좋은지)
@@ -1873,13 +1808,9 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   const TRAFFIC_INTENT = 'action.traffic'; // 6대 광역도시 교통정보 (구로 묻기)
   const SUBWAYROUTE_INTENT = 'action.subwayRoute'; // 경로 안내 지하철
   //Oauth ======================================================================
-  //버스 정류장 (저장한 번호)
-  const BUS_OAUTH_INTENT = 'action.busOauth';
-  //지하철 역 시간표대로
-  const STATION_TIMETABLE_OAUTH_INTENT = 'action.stationTimeTableOauth';
-  //실시간 지하철
-  const STATION_REALTIME_OAUTH_INTENT = 'action.stationRealtimeOauth';
-
+  const BUS_OAUTH_INTENT = 'action.busOauth'; //버스 정류장 (저장한 번호)
+  const STATION_TIMETABLE_OAUTH_INTENT = 'action.stationTimeTableOauth'; //지하철 역 시간표대로
+  const STATION_REALTIME_OAUTH_INTENT = 'action.stationRealtimeOauth'; //실시간 지하철
   const OILINFO_OAUTH_INTENT = 'action.oilinfoOauth'; // 최저가 주유소 정보
   const OILINFO_EMAIL_OAUTH_INTENT = 'action.oilinfoEmailOauth'; // 최저가 주유소 이메일 보내기
   const TRAFFIC_MY_OAUTH_INTENT = 'action.trafficMyOauth'; //서울 + 인천 + 부산의 교통정보: 저장된 위치
@@ -1889,19 +1820,13 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
   //========================================================================
   //퀄리티
   const HELP_INTENT = 'action.help' //도움말
-
   const SUPPORT_INTENT = 'action.support' //지원되는 메뉴 랜덤으로 3개정도
-
   //========================================================================
   //최초 시작 부분
   //========================================================================
 
   switch (tagId) { //intent 별 분기처리
     //일반 묻기
-    case BUS_INTENT: //버스 실시간
-      bus_action()
-      break;
-
     case STATION_TIMETABLE_INTENT: // 지하쳘 역 시간표 비교
       station_timetable_action()
       break;
@@ -1925,13 +1850,9 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     case SUBWAYROUTE_INTENT: // 경로 안내
       subway_route_action()
       break;
-
-
-
       /**
        * Oauth 기능 이용
        */
-
     case BUS_OAUTH_INTENT: // 버스정보
       bus_oauth_action()
       break;
@@ -1970,10 +1891,11 @@ exports.nugu_chatbot = (knex, req, res, tagId) => {
     case HELP_INTENT: //일반 퀄리티 용 설명
       help_action()
       break;
+
     case SUPPORT_INTENT: //일반 퀄리티 용 설명
       support_action()
       break;
 
   } //switch
 
-}
+} //END

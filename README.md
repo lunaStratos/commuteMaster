@@ -1,15 +1,15 @@
-# 출근마스터
+# 교통마스터
 
-[![실제 동작 모습](http://img.youtube.com/vi/40DJOA-HVtg/0.jpg)](https://www.youtube.com/watch?v=40DJOA-HVtg)
+[![실제 동작 모습](http://img.youtube.com/vi/QbNX1fEwERc/0.jpg)](https://www.youtube.com/watch?v=QbNX1fEwERc)
 
-**출근마스터!** 는 SK NUGU 용으로 개발된 웹사이트와 챗봇입니다.
-**서울 버스 실시간 도착 정보**와 **서울, 부산, 인천의 전철 시간표**, 그리고 **서울 실시간 전철 도착** 정보와 비교 대조하여 최적의 정보를 전달합니다. 또한 **서울과 주요 광역시의 구**를 조회하여  **평균 혼잡도**를 조회와 **주유서 최저가**조회가 가능합니다. Oauth를 사용하지만 몇가지 기능은 계정연동 없이 사용이 가능합니다.
+**교통마스터!** 는 SK NUGU 용으로 개발된 웹사이트와 챗봇입니다. 2019년 SK TELECOM NUGU 개발 공모전에서 **장려상**을 수상하였습니다.
+**서울 버스 실시간 도착 정보**와 **서울, 부산, 인천의 전철 시간표**, 그리고 **서울 실시간 전철 도착** 정보와 비교 대조하여 최적의 정보를 전달합니다. 또한 **서울과 주요 광역시의 구**를 조회하여  **평균 혼잡도**를 조회와 **주유서 최저가** 조회가 가능합니다. Oauth를 사용하지만 몇가지 기능은 계정연동 없이 사용이 가능합니다.
 
 OAUth2 authorization code 형식으로 구현을 하였습니다.  기존 코드를 이용했으며, 앱엔진을 하나로 쓰기 위해서 하나로 만들었습니다.
 
 언어는 nodejs로 구현하였습니다. 원래는 java로 구현을 하려고 했으나 혼자서 웹과 챗봇 둘 다 개발을 해야 했기에 오류찾기 쉽고, 그 동안 챗봇을 만든 언어인 nodejs를 사용하게 되었습니다.
 
-출근마스터의 개발기간은 30일 정도 였습니다.
+교통마스터의 개발기간은 30일 정도 였습니다.
 
 * 이 코드에는 google oAuth와 개인 Oauth, data.go.kr의 토큰등이 빠져 있습니다.
 
@@ -20,21 +20,20 @@ OAUth2 authorization code 형식으로 구현을 하였습니다.  기존 코드
 * 기상청 현재날씨
 * 서울시 버스 도착정보
 * 수도권 실시간 전철 도착정보
-* 수도권 전철 시간표
+* 수도권 전철 시간표 (서울, 경기, 인천)
 * 부산 시간표
-* 인천 시간표 :api가 없어서 CSV to DB로 구현했습니다.
 * Tmap 교통정보 : 혼잡도 정보를 평균으로 구현하였습니다.
 * 주유소 최저가 정보
 
-## 출근마스터 주요기능 ##
+## 교통마스터 주요기능 ##
 
 계정연동 없이 사용가능한 기능은 다음과 같습니다.
 
 * 역 이름으로 25분내 도착가능한 열차 시간
 * 역 이름으로 실시간 도착하는 전철
 * 서울과 주요 광역시 구 교통혼잡정보
-* 서울과 주요 광역시 날씨와 미세먼지 정보
 * 서울과 주요 광역시 최저가 주유소
+* 역에서 역까지 걸리는 시간과 환승 정거장.
 
 계정연동을 해야 사용한 기능은 다음과 같습니다. 역 정보와 상행선 하행선, 노선은 미리 저장되어 같은 기능이라도 사용이 더욱 편리합니다.
 
@@ -67,7 +66,7 @@ OAUth2 authorization code 형식으로 구현을 하였습니다.  기존 코드
 
 ## deploy
 
-gcloud app deploy
+gcloud app deploy app.yaml
 gcloud app deploy cron.yaml
 
 
@@ -75,8 +74,8 @@ gcloud app deploy cron.yaml
 
 PT발표용 파일과 기획서 제출 파일입니다.
 
-* [기획서](./pds/TheUmbrellaForAutumnRain_final_.Plan.pptx)
-* [8분 발표용 수정](./pds/TheUmbrellaForAutumnRain_final_.Plan_final_speech_8min_censorship.pptx)
+* [기획서](./pds/TheUmbrellaForAutumnRain_final_Plan.pptx)
+* [10분 발표용 수정](./pds/TheUmbrellaForAutumnRain_final_Plan_speech_10min.pptx)
 
 ```mermaid
 sequenceDiagram

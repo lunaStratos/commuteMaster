@@ -11,6 +11,14 @@ OAUth2 authorization code 형식으로 구현을 하였습니다.  기존 코드
 
 교통마스터의 개발기간은 30일 정도 였습니다.
 
+<p align="center">
+<img src="./pds/win.jpeg?raw=true"/>
+</p>
+
+최종적으로 장려상을 받았습니다. 언론기사는 [다음](https://news.v.daum.net/v/20190426092521429)과 같습니다.
+* [SK텔레콤 '누구 플레이 개발 공모전' 최우수상 수상은 누구?](https://news.v.daum.net/v/20190426092521429)
+
+
 * 이 코드에는 google oAuth와 개인 Oauth, data.go.kr의 토큰등이 빠져 있습니다.
 
 ## 사용 API

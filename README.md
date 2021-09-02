@@ -2,6 +2,8 @@
 
 [![실제 동작 모습](http://img.youtube.com/vi/QbNX1fEwERc/0.jpg)](https://www.youtube.com/watch?v=QbNX1fEwERc)
 
+소개영상: https://www.youtube.com/watch?v=QbNX1fEwERc
+
 **교통마스터!** 는 SK NUGU 용으로 개발된 웹사이트와 챗봇입니다. 2019년 SK TELECOM NUGU 개발 공모전에서 **장려상**을 수상하였습니다.
 **서울 버스 실시간 도착 정보**와 **서울, 부산, 인천의 전철 시간표**, 그리고 **서울 실시간 전철 도착** 정보와 비교 대조하여 최적의 정보를 전달합니다. 또한 **서울과 주요 광역시의 구**를 조회하여  **평균 혼잡도**를 조회와 **주유서 최저가** 조회가 가능합니다. Oauth를 사용하지만 몇가지 기능은 계정연동 없이 사용이 가능합니다.
 

@@ -1,11 +1,11 @@
-var express = require('express');
-var randtoken = require('rand-token');
+const express = require('express');
+const randtoken = require('rand-token');
 
-let jwt = require("jsonwebtoken");
-var request = require('request');
+const jwt = require("jsonwebtoken");
+const request = require('request');
 const session = require('express-session');
 const passport = require('passport');
-var cookieparser = require('cookie-parser');
+const cookieparser = require('cookie-parser');
 // store session state in browser cookie
 
 let checkCode = require("../jscode/checkForm.js");

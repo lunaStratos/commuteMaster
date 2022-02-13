@@ -1,16 +1,16 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
 const session = require('express-session');
-var fs = require("fs");
-var ejs = require("ejs");
+const fs = require("fs");
+const ejs = require("ejs");
 
-var transporter = require("../config/emailConfig");
-let randomCode = require("../jscode/authmail.js");
-let checkCode = require("../jscode/checkForm.js");
-let knex = require("../config/database");
-var refreshToken = require("../jscode/refreshToken"); // Refresh토큰 실행기
-let moduleRequest = require("../jscode/moduleRequest");
+const transporter = require("../config/emailConfig");
+const randomCode = require("../jscode/authmail.js");
+const checkCode = require("../jscode/checkForm.js");
+const knex = require("../config/database");
+const refreshToken = require("../jscode/refreshToken"); // Refresh토큰 실행기
+const moduleRequest = require("../jscode/moduleRequest");
 const commuteUtil = require("../jscode/commute/commuteUtil.js");
 const stationCodeBook = require("../jscode/commute/subwayCode.js");
 const checkForm = require("../jscode/commute/checkForm.js");

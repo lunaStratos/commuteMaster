@@ -116,9 +116,7 @@ router.post('/token', async function(req, res) {
   let authHeader = req.body.code;
   const client_secret = req.body.client_secret;
   const client_id = req.body.client_id;
-  console.log('authHeader', authHeader)
-  console.log('client_secret', client_secret)
-  console.log('client_id', client_id)
+  
   // 인증으로 사용해야 할 값이 없다면 Deny
   if (client_id !== secretObj.client_id) {
     return res.json({

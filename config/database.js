@@ -4,7 +4,7 @@ function connect() {
 
   const config = {
     user: process.env.SQL_USER || 'root',
-    password: process.env.SQL_PASSWORD || 'tornado135!',
+    password: process.env.SQL_PASSWORD || '1q2w3e4r!',
     database: process.env.SQL_DATABASE || 'camelia',
     socketPath:  `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
     // port: 3306,
